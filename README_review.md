@@ -30,3 +30,20 @@ This commit addresses several issues and enhances the `Coupon` entity and its as
   moved to the Data Transfer Object (DTO). This means the DTO now includes logic to ensure that received data meets
   business requirements before being processed by the entity. This promotes early validation, reduces the load on the
   service layer, and improves code cohesion.
+
+# Commit [Retrieve coupons from a code list]
+
+This commit introduces the functionality to retrieve a list of coupons based on a provided list of coupon codes.
+
+* **R2dbcRepository Switch + `findByCodeIn`:** Transitioned the data access layer to utilize R2DBC repositories for
+  reactive database interactions.
+* **OpenAPI SpringDoc for Documentation Enhancement**
+* **Coupon Service - `getCoupons`**
+* **CouponDTO Mapper Implementation:** Implemented a mapper to convert Coupon entities to CouponDTOs, ensuring that only
+  necessary data is exposed to the
+  API.
+* **API Operation Docs:** Added comprehensive API operation documentation, including request parameters, response codes,
+  and response
+  schemas, to provide clear guidance to API consumers.
+* **Testing:** Coupon service, resource and mapper
+* **Global exception handler for validation errors**

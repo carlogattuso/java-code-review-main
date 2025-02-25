@@ -1,23 +1,24 @@
 package schwarz.jobs.interview.coupon.core.services;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
-
-import org.springframework.stereotype.Service;
-
 import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import reactor.core.publisher.Flux;
 import schwarz.jobs.interview.coupon.core.domain.Coupon;
+import schwarz.jobs.interview.coupon.core.mapper.CouponMapper;
 import schwarz.jobs.interview.coupon.core.repository.CouponRepository;
 import schwarz.jobs.interview.coupon.core.services.model.Basket;
 import schwarz.jobs.interview.coupon.web.dto.CouponDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponRequestDTO;
+
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
 public class CouponService {
 
     private final CouponRepository couponRepository;
+
+    private final CouponMapper couponMapper;
 
     public Optional<Coupon> getCoupon(final String code) {
         return couponRepository.findByCode(code);
@@ -51,26 +52,19 @@ public class CouponService {
         Coupon coupon = null;
 
         try {
-            coupon = Coupon.builder()
-                .code(couponDTO.getCode().toLowerCase())
-                .discount(couponDTO.getDiscount())
-                .minBasketValue(couponDTO.getMinBasketValue())
-                .build();
+            coupon = Coupon.builder().code(couponDTO.getCode().toLowerCase()).discount(couponDTO.getDiscount())
+                    .minBasketValue(couponDTO.getMinBasketValue()).build();
 
         } catch (final NullPointerException e) {
 
             // Don't coupon when code is null
         }
 
-        return couponRepository.save(coupon);
+        return coupon;
     }
 
-    public List<Coupon> getCoupons(final CouponRequestDTO couponRequestDTO) {
-
-        final ArrayList<Coupon> foundCoupons = new ArrayList<>();
-
-        couponRequestDTO.getCodes().forEach(code -> foundCoupons.add(couponRepository.findByCode(code).get()));
-
-        return foundCoupons;
+    public Flux<CouponDTO> getCoupons(final CouponRequestDTO couponRequestDTO) {
+        Flux<Coupon> coupons = couponRepository.findByCodeIn(couponRequestDTO.getCodes());
+        return coupons.map(couponMapper::toDto);
     }
 }

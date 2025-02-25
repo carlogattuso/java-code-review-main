@@ -1,11 +1,10 @@
-package schwarz.jobs.interview.coupon.core.services.model;
-
-import java.math.BigDecimal;
-
-import javax.validation.constraints.NotNull;
+package schwarz.jobs.interview.coupon.core.models;
 
 import lombok.Builder;
 import lombok.Data;
+
+import javax.validation.constraints.NotNull;
+import java.math.BigDecimal;
 
 @Data
 @Builder

@@ -1,13 +1,18 @@
 package schwarz.jobs.interview.coupon.core.repository;
 
-import java.util.Optional;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-
+import org.springframework.data.r2dbc.repository.R2dbcRepository;
+import org.springframework.stereotype.Repository;
+import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import schwarz.jobs.interview.coupon.core.domain.Coupon;
 
-public interface CouponRepository extends JpaRepository<Coupon, Long> {
+import java.util.List;
 
-    Optional<Coupon> findByCode(final String code);
+@Repository
+public interface CouponRepository extends R2dbcRepository<Coupon, Long> {
+
+    Mono<Coupon> findByCode(final String code);
+
+    Flux<Coupon> findByCodeIn(List<String> codes);
 
 }
