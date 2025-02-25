@@ -1,13 +1,16 @@
 DROP TABLE IF EXISTS coupons;
- 
-CREATE TABLE coupons (
-  id INT AUTO_INCREMENT  PRIMARY KEY,
-  code  VARCHAR(250) NOT NULL,
-  discount NUMBER(10,2) NOT NULL,
-  minBasketValue NUMBER(10,2) DEFAULT NULL
+
+CREATE TABLE coupons
+(
+    ID               BIGINT AUTO_INCREMENT PRIMARY KEY,
+    CODE             VARCHAR(250) UNIQUE NOT NULL,
+    DISCOUNT         DECIMAL(10, 2)      NOT NULL,
+    MIN_BASKET_VALUE DECIMAL(10, 2) DEFAULT NULL
 );
- 
-INSERT INTO coupons (code, discount, minBasketValue) VALUES
-  ('TEST1', 10.00, 50.00),
-  ('TEST2', 15.00, 100.00),
-  ('TEST3', 20.00, 200.00);
+
+CREATE UNIQUE INDEX idx_coupon_code ON coupons (CODE);
+
+INSERT INTO coupons (CODE, DISCOUNT, MIN_BASKET_VALUE)
+VALUES ('TEST1', 10.00, 50.00),
+       ('TEST2', 15.00, 100.00),
+       ('TEST3', 20.00, 200.00);
