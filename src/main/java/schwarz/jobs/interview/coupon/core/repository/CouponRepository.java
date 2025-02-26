@@ -15,4 +15,6 @@ public interface CouponRepository extends R2dbcRepository<Coupon, Long> {
 
     Flux<Coupon> findByCodeIn(List<String> codes);
 
+    Mono<Boolean> existsCouponByCode(final String code);
+
 }

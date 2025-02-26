@@ -16,16 +16,15 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import schwarz.jobs.interview.coupon.core.models.Basket;
 import schwarz.jobs.interview.coupon.core.services.CouponService;
-import schwarz.jobs.interview.coupon.core.services.model.Basket;
-import schwarz.jobs.interview.coupon.exception.ValidationError;
 import schwarz.jobs.interview.coupon.web.dto.ApplicationRequestDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponRequestDTO;
+import schwarz.jobs.interview.coupon.web.errors.ConflictError;
 import schwarz.jobs.interview.coupon.web.errors.DefaultError;
 import schwarz.jobs.interview.coupon.web.errors.UnprocessableEntityError;
 
 import javax.validation.Valid;
-import java.util.Optional;
+import java.net.URI;
 
 import static schwarz.jobs.interview.coupon.constants.ApiConstants.API_PREFIX;
 import static schwarz.jobs.interview.coupon.constants.ApiConstants.COUPON_CREATE_PATH;
@@ -52,7 +51,7 @@ public class CouponResource {
 
         log.info("Applying coupon");
 
-        final Optional<Basket> basket =
+        /*final Optional<Basket> basket =
                 couponService.apply(applicationRequestDTO.getBasket(), applicationRequestDTO.getCode());
 
         if (basket.isEmpty()) {
@@ -63,17 +62,30 @@ public class CouponResource {
             return ResponseEntity.status(HttpStatus.CONFLICT).build();
         }
 
-        log.info("Applied coupon");
+        log.info("Applied coupon");*/
 
         return ResponseEntity.ok().body(applicationRequestDTO.getBasket());
     }
 
-    @PostMapping("/create")
-    public ResponseEntity<Void> create(@RequestBody @Valid final CouponDTO couponDTO) {
+    @PostMapping(COUPON_CREATE_PATH)
+    @Operation(summary = "Create a new coupon")
+    @ApiResponse(responseCode = "201", description = "Success",
+            content = @Content(mediaType = "application/json",
+                    schema = @Schema(implementation = CouponDTO.class)))
+    @ApiResponse(responseCode = "409", description = "Conflict - Coupon code already exists",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = ConflictError.class)))
+    @ApiResponse(responseCode = "422", description = "Unprocessable entity",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = UnprocessableEntityError.class)))
+    @ApiResponse(responseCode = "400", description = "Bad Request",
+            content = @Content(mediaType = "application/json", schema = @Schema(implementation = DefaultError.class)))
+    @ApiResponse(responseCode = "500", description = "Unexpected Error",
+            content = @Content(schema = @Schema(implementation = DefaultError.class)))
+    public ResponseEntity<Mono<CouponDTO>> create(@RequestBody @Valid final CouponDTO couponDTO) {
 
-        final Coupon coupon = couponService.createCoupon(couponDTO);
+        Mono<CouponDTO> savedCoupon = couponService.createCoupon(couponDTO);
 
-        return ResponseEntity.ok().build();
+        URI location = URI.create(API_PREFIX.concat(COUPON_CREATE_PATH).concat(String.format("/%s", couponDTO.getCode())));
+        return ResponseEntity.created(location).body(savedCoupon);
     }
 
     @PostMapping(COUPON_FILTER_PATH)
@@ -91,6 +103,7 @@ public class CouponResource {
             @RequestBody @Valid final CouponRequestDTO couponRequestDTO) {
 
         Flux<CouponDTO> coupons = couponService.getCoupons(couponRequestDTO);
+        
         return ResponseEntity.ok(coupons);
     }
 

@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import reactor.core.publisher.Mono;
+import schwarz.jobs.interview.coupon.core.exception.CouponCodeAlreadyExistsException;
+import schwarz.jobs.interview.coupon.web.errors.ConflictError;
 import schwarz.jobs.interview.coupon.web.errors.UnprocessableEntityError;
 
 import java.util.Map;
@@ -30,6 +32,17 @@ public class GlobalErrorHandler {
         UnprocessableEntityError errorResponse = UnprocessableEntityError.builder()
                 .message("Validation error")
                 .errors(errors)
+                .build();
+
+        return Mono.just(errorResponse);
+    }
+
+    @ExceptionHandler(CouponCodeAlreadyExistsException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Mono<ConflictError> handleCouponCodeAlreadyExistsException() {
+
+        ConflictError errorResponse = ConflictError.builder()
+                .message("Coupon code already exists")
                 .build();
 
         return Mono.just(errorResponse);

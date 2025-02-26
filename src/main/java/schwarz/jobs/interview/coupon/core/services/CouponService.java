@@ -3,14 +3,13 @@ package schwarz.jobs.interview.coupon.core.services;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 import schwarz.jobs.interview.coupon.core.domain.Coupon;
+import schwarz.jobs.interview.coupon.core.exception.CouponCodeAlreadyExistsException;
 import schwarz.jobs.interview.coupon.core.mapper.CouponMapper;
 import schwarz.jobs.interview.coupon.core.repository.CouponRepository;
-import schwarz.jobs.interview.coupon.core.services.model.Basket;
 import schwarz.jobs.interview.coupon.web.dto.CouponDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponRequestDTO;
-
-import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -20,11 +19,11 @@ public class CouponService {
 
     private final CouponMapper couponMapper;
 
-    public Optional<Coupon> getCoupon(final String code) {
+    public Mono<Coupon> getCoupon(final String code) {
         return couponRepository.findByCode(code);
     }
 
-    public Optional<Basket> apply(final Basket basket, final String code) {
+    /*public Optional<Basket> apply(final Basket basket, final String code) {
 
         return getCoupon(code).map(coupon -> {
 
@@ -45,22 +44,34 @@ public class CouponService {
 
             return basket;
         });
+    }*/
+
+    public Mono<CouponDTO> createCoupon(final CouponDTO couponDTO) {
+        String couponCode = couponDTO.getCode();
+
+        return hasCoupon(couponCode)
+                .flatMap(exists -> {
+                    if (Boolean.TRUE.equals(exists)) {
+                        return Mono.error(new CouponCodeAlreadyExistsException(couponCode));
+                    } else {
+                        return saveCoupon(couponDTO, couponCode);
+                    }
+                })
+                .map(couponMapper::toDto);
     }
 
-    public Coupon createCoupon(final CouponDTO couponDTO) {
+    private Mono<Boolean> hasCoupon(String code) {
+        return couponRepository.existsCouponByCode(code);
+    }
 
-        Coupon coupon = null;
+    private Mono<Coupon> saveCoupon(CouponDTO couponDTO, String code) {
+        Coupon newCoupon = Coupon.builder()
+                .code(code)
+                .discount(couponDTO.getDiscount())
+                .minBasketValue(couponDTO.getMinBasketValue())
+                .build();
 
-        try {
-            coupon = Coupon.builder().code(couponDTO.getCode().toLowerCase()).discount(couponDTO.getDiscount())
-                    .minBasketValue(couponDTO.getMinBasketValue()).build();
-
-        } catch (final NullPointerException e) {
-
-            // Don't coupon when code is null
-        }
-
-        return coupon;
+        return couponRepository.save(newCoupon);
     }
 
     public Flux<CouponDTO> getCoupons(final CouponRequestDTO couponRequestDTO) {

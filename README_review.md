@@ -1,8 +1,7 @@
 # Commit [Reactive WebFlux r2dbc setup]
 
 This commit transitions the application's data access and web layer from a traditional synchronous JPA/JDBC approach to
-a reactive asynchronous R2DBC/WebFlux architecture. This shift enables non-blocking operations and improved scalability
-by leveraging reactive streams and asynchronous database interactions:
+a reactive asynchronous R2DBC/WebFlux architecture:
 
 * **Code Style Standardization:** Consistent code formatting and style improvements for better readability and
   maintainability.
@@ -47,3 +46,13 @@ This commit introduces the functionality to retrieve a list of coupons based on 
   schemas, to provide clear guidance to API consumers.
 * **Testing:** Coupon service, resource and mapper
 * **Global exception handler for validation errors**
+
+# Commit [Create new coupon]
+
+This commit introduces the functionality to create new coupon entries in the system.
+
+* **Added method to check for existing coupons:** Implemented validation logic to prevent duplicate coupon codes
+* **Error handling: Inherited error models:** Created a hierarchical error model structure
+* **Added create coupon endpoint**
+* **Testing:** Coupon service and resource
+* **Enhanced schema documentation:** Expanded the OpenAPI documentation with detailed schema descriptions
