@@ -9,9 +9,15 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import schwarz.jobs.interview.coupon.core.domain.Coupon;
 import schwarz.jobs.interview.coupon.core.exception.CouponCodeAlreadyExistsException;
+import schwarz.jobs.interview.coupon.core.exception.CouponNotFoundException;
+import schwarz.jobs.interview.coupon.core.exception.InsufficientBasketValueException;
+import schwarz.jobs.interview.coupon.core.exception.InvalidDiscountException;
 import schwarz.jobs.interview.coupon.core.mapper.BasketMapper;
 import schwarz.jobs.interview.coupon.core.mapper.CouponMapper;
+import schwarz.jobs.interview.coupon.core.models.Basket;
 import schwarz.jobs.interview.coupon.core.repository.CouponRepository;
+import schwarz.jobs.interview.coupon.web.dto.ApplicationRequestDTO;
+import schwarz.jobs.interview.coupon.web.dto.BasketDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponRequestDTO;
 
@@ -21,6 +27,7 @@ import java.util.Collections;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
@@ -191,4 +198,97 @@ class CouponServiceTest {
                 .verifyComplete();
     }
 
+    @Test
+    void apply_should_apply_discount_successfully() {
+        ApplicationRequestDTO requestDTO = new ApplicationRequestDTO("COUPON123", getSampleBasketDTO(BigDecimal.TEN));
+        Coupon coupon = Coupon.builder()
+                .code("COUPON123")
+                .discount(BigDecimal.ONE)
+                .minBasketValue(BigDecimal.TEN)
+                .build();
+
+        when(basketMapper.toBasket(any())).thenReturn(getSampleBasket(BigDecimal.TEN));
+        when(couponRepository.findByCode("COUPON123")).thenReturn(Mono.just(coupon));
+        when(basketMapper.toDto(any())).thenReturn(getSampleBasketDTO(BigDecimal.TEN));
+
+        Mono<BasketDTO> result = couponService.applyCoupon(requestDTO);
+
+        StepVerifier.create(result)
+                .expectNextMatches(basketDTO -> {
+                    assertThat(basketDTO.getAppliedDiscount()).isEqualTo(BigDecimal.ONE);
+                    assertTrue(basketDTO.isApplicationSuccessful());
+                    return true;
+                })
+                .verifyComplete();
+    }
+
+    @Test
+    void apply_should_throw_coupon_not_found() {
+        ApplicationRequestDTO requestDTO = new ApplicationRequestDTO("INVALID", getSampleBasketDTO(BigDecimal.TEN));
+
+        when(basketMapper.toBasket(any())).thenReturn(getSampleBasket(BigDecimal.TEN));
+        when(couponRepository.findByCode("INVALID")).thenReturn(Mono.empty());
+
+        Mono<BasketDTO> result = couponService.applyCoupon(requestDTO);
+
+        StepVerifier.create(result)
+                .expectError(CouponNotFoundException.class)
+                .verify();
+    }
+
+    @Test
+    void apply_should_throw_insufficient_basket_value() {
+        ApplicationRequestDTO requestDTO = new ApplicationRequestDTO("COUPON123", getSampleBasketDTO(BigDecimal.ONE));
+
+        Coupon coupon = Coupon.builder()
+                .code("COUPON123")
+                .discount(BigDecimal.ONE)
+                .minBasketValue(BigDecimal.TEN)
+                .build();
+
+        when(basketMapper.toBasket(any())).thenReturn(getSampleBasket(BigDecimal.ONE));
+        when(couponRepository.findByCode("COUPON123")).thenReturn(Mono.just(coupon));
+
+        Mono<BasketDTO> result = couponService.applyCoupon(requestDTO);
+
+        StepVerifier.create(result)
+                .expectError(InsufficientBasketValueException.class)
+                .verify();
+    }
+
+    @Test
+    void apply_should_throw_invalid_discount() {
+        ApplicationRequestDTO requestDTO = new ApplicationRequestDTO("COUPON123", getSampleBasketDTO(BigDecimal.TEN));
+
+        Coupon coupon = Coupon.builder()
+                .code("COUPON123")
+                .discount(BigDecimal.valueOf(50))
+                .minBasketValue(BigDecimal.TEN)
+                .build();
+
+        when(basketMapper.toBasket(any())).thenReturn(getSampleBasket(BigDecimal.TEN));
+        when(couponRepository.findByCode("COUPON123")).thenReturn(Mono.just(coupon));
+
+        Mono<BasketDTO> result = couponService.applyCoupon(requestDTO);
+
+        StepVerifier.create(result)
+                .expectError(InvalidDiscountException.class)
+                .verify();
+    }
+
+    private BasketDTO getSampleBasketDTO(BigDecimal value) {
+        return BasketDTO.builder()
+                .value(value)
+                .appliedDiscount(BigDecimal.ONE)
+                .applicationSuccessful(Boolean.TRUE)
+                .build();
+    }
+
+    private Basket getSampleBasket(BigDecimal value) {
+        return Basket.builder()
+                .value(value)
+                .appliedDiscount(BigDecimal.ZERO)
+                .applicationSuccessful(Boolean.FALSE)
+                .build();
+    }
 }

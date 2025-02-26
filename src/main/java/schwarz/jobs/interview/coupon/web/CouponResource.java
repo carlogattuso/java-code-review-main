@@ -44,7 +44,7 @@ public class CouponResource {
 
     @PutMapping(COUPON_APPLY_PATH)
     @Operation(summary = "Apply discount coupon to a specific basket")
-    @ApiResponse(responseCode = "201", description = "Success",
+    @ApiResponse(responseCode = "200", description = "Success",
             content = @Content(mediaType = "application/json",
                     schema = @Schema(implementation = CouponDTO.class)))
     @ApiResponse(responseCode = "404", description = "Coupon code not exists",

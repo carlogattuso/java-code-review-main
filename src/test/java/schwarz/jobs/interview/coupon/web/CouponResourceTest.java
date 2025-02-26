@@ -11,11 +11,17 @@ import org.springframework.test.web.reactive.server.WebTestClient;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import schwarz.jobs.interview.coupon.core.exception.CouponCodeAlreadyExistsException;
+import schwarz.jobs.interview.coupon.core.exception.CouponNotFoundException;
+import schwarz.jobs.interview.coupon.core.exception.InsufficientBasketValueException;
+import schwarz.jobs.interview.coupon.core.exception.InvalidDiscountException;
 import schwarz.jobs.interview.coupon.core.services.CouponService;
+import schwarz.jobs.interview.coupon.web.dto.ApplicationRequestDTO;
+import schwarz.jobs.interview.coupon.web.dto.BasketDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponRequestDTO;
 import schwarz.jobs.interview.coupon.web.errors.ConflictError;
 import schwarz.jobs.interview.coupon.web.errors.DefaultError;
+import schwarz.jobs.interview.coupon.web.errors.NotFoundError;
 import schwarz.jobs.interview.coupon.web.errors.UnprocessableEntityError;
 
 import java.math.BigDecimal;
@@ -24,6 +30,7 @@ import java.util.Arrays;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static schwarz.jobs.interview.coupon.constants.ApiConstants.API_PREFIX;
+import static schwarz.jobs.interview.coupon.constants.ApiConstants.COUPON_APPLY_PATH;
 import static schwarz.jobs.interview.coupon.constants.ApiConstants.COUPON_CREATE_PATH;
 import static schwarz.jobs.interview.coupon.constants.ApiConstants.COUPON_FILTER_PATH;
 
@@ -170,6 +177,149 @@ class CouponResourceTest {
         webTestClient.post().uri(API_PREFIX.concat(COUPON_CREATE_PATH))
                 .contentType(MediaType.APPLICATION_JSON)
                 .bodyValue(objectMapper.writeValueAsString(couponDTO))
+                .exchange()
+                .expectStatus().is5xxServerError().expectBody(DefaultError.class);
+    }
+
+    @Test
+    void apply_should_return_200_when_discount_valid() throws JsonProcessingException {
+        ApplicationRequestDTO requestDTO = ApplicationRequestDTO.builder()
+                .basket(BasketDTO.builder()
+                        .value(BigDecimal.TEN)
+                        .appliedDiscount(BigDecimal.ZERO)
+                        .applicationSuccessful(Boolean.FALSE)
+                        .build())
+                .code("CODE1234")
+                .build();
+
+        Mono<BasketDTO> mockBasketDTO = Mono.just(BasketDTO.builder()
+                .value(BigDecimal.TEN)
+                .appliedDiscount(BigDecimal.ZERO)
+                .applicationSuccessful(Boolean.FALSE)
+                .build());
+
+        when(couponService.applyCoupon(any(ApplicationRequestDTO.class))).thenReturn(mockBasketDTO);
+
+        webTestClient.put().uri(API_PREFIX.concat(COUPON_APPLY_PATH))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(objectMapper.writeValueAsString(requestDTO))
+                .exchange()
+                .expectStatus().isOk()
+                .expectBody(BasketDTO.class)
+                .isEqualTo(
+                        BasketDTO.builder().value(BigDecimal.TEN).appliedDiscount(BigDecimal.ZERO).applicationSuccessful(Boolean.FALSE).build()
+                );
+    }
+
+    @Test
+    void apply_should_return_404_when_coupon_code_not_exists() throws JsonProcessingException {
+        ApplicationRequestDTO requestDTO = ApplicationRequestDTO.builder()
+                .basket(BasketDTO.builder()
+                        .value(BigDecimal.TEN)
+                        .appliedDiscount(BigDecimal.ZERO)
+                        .applicationSuccessful(Boolean.FALSE)
+                        .build())
+                .code("CODE1234")
+                .build();
+
+        when(couponService.applyCoupon(any(ApplicationRequestDTO.class)))
+                .thenReturn(Mono.error(new CouponNotFoundException("CODE1234")));
+
+        webTestClient.put().uri(API_PREFIX.concat(COUPON_APPLY_PATH))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(objectMapper.writeValueAsString(requestDTO))
+                .exchange()
+                .expectStatus().is4xxClientError()
+                .expectBody(NotFoundError.class);
+    }
+
+    @Test
+    void apply_should_return_409_when_insufficient_basket_value() throws JsonProcessingException {
+        ApplicationRequestDTO requestDTO = ApplicationRequestDTO.builder()
+                .basket(BasketDTO.builder()
+                        .value(BigDecimal.TEN)
+                        .appliedDiscount(BigDecimal.ZERO)
+                        .applicationSuccessful(Boolean.FALSE)
+                        .build())
+                .code("CODE1234")
+                .build();
+
+        when(couponService.applyCoupon(any(ApplicationRequestDTO.class)))
+                .thenReturn(Mono.error(new InsufficientBasketValueException(BigDecimal.TEN.toString())));
+
+        webTestClient.put().uri(API_PREFIX.concat(COUPON_APPLY_PATH))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(objectMapper.writeValueAsString(requestDTO))
+                .exchange()
+                .expectStatus().is4xxClientError()
+                .expectBody(ConflictError.class);
+    }
+
+    @Test
+    void apply_should_return_409_when_coupon_discount_invalid() throws JsonProcessingException {
+        ApplicationRequestDTO requestDTO = ApplicationRequestDTO.builder()
+                .basket(BasketDTO.builder()
+                        .value(BigDecimal.TEN)
+                        .appliedDiscount(BigDecimal.ZERO)
+                        .applicationSuccessful(Boolean.FALSE)
+                        .build())
+                .code("CODE1234")
+                .build();
+
+        when(couponService.applyCoupon(any(ApplicationRequestDTO.class)))
+                .thenReturn(Mono.error(new InvalidDiscountException(BigDecimal.TEN.toString())));
+
+        webTestClient.put().uri(API_PREFIX.concat(COUPON_APPLY_PATH))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(objectMapper.writeValueAsString(requestDTO))
+                .exchange()
+                .expectStatus().is4xxClientError()
+                .expectBody(ConflictError.class);
+    }
+
+    @Test
+    void apply_should_return_422_when_application_request_is_invalid() throws JsonProcessingException {
+        ApplicationRequestDTO requestDTO = ApplicationRequestDTO.builder()
+                .basket(BasketDTO.builder()
+                        .value(BigDecimal.TEN)
+                        .appliedDiscount(BigDecimal.ZERO)
+                        .applicationSuccessful(Boolean.FALSE)
+                        .build())
+                .build();
+
+        Mono<BasketDTO> mockBasketDTO = Mono.just(BasketDTO.builder()
+                .value(BigDecimal.TEN)
+                .appliedDiscount(BigDecimal.ZERO)
+                .applicationSuccessful(Boolean.FALSE)
+                .build());
+
+        when(couponService.applyCoupon(any(ApplicationRequestDTO.class))).thenReturn(mockBasketDTO);
+
+        webTestClient.put().uri(API_PREFIX.concat(COUPON_APPLY_PATH))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(objectMapper.writeValueAsString(requestDTO))
+                .exchange()
+                .expectStatus().is4xxClientError()
+                .expectBody(UnprocessableEntityError.class);
+    }
+
+    @Test
+    void apply_should_return_500_when_unexpected_error() throws JsonProcessingException {
+        ApplicationRequestDTO requestDTO = ApplicationRequestDTO.builder()
+                .basket(BasketDTO.builder()
+                        .value(BigDecimal.TEN)
+                        .appliedDiscount(BigDecimal.ZERO)
+                        .applicationSuccessful(Boolean.FALSE)
+                        .build())
+                .code("CODE1234")
+                .build();
+
+        when(couponService.applyCoupon(any(ApplicationRequestDTO.class)))
+                .thenReturn(Mono.error(new RuntimeException("Unexpected error")));
+
+        webTestClient.put().uri(API_PREFIX.concat(COUPON_APPLY_PATH))
+                .contentType(MediaType.APPLICATION_JSON)
+                .bodyValue(objectMapper.writeValueAsString(requestDTO))
                 .exchange()
                 .expectStatus().is5xxServerError().expectBody(DefaultError.class);
     }

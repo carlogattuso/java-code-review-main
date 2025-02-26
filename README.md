@@ -82,6 +82,9 @@ This commit introduces the functionality to create new coupon entries in the sys
 
 * **Added method to apply a coupon to a basket:** Implemented validation logic to prevent exceeding basket value
 * **Added apply coupon endpoint**
-* **Testing:** Coupon service and resource
 * **Inherited BasketDTO Schema validation**
 * **Basket mapper implementation**
+
+# Commit [Remaining tests]
+
+* **Testing:** Coupon service and resource for coupon application and basket mapper
