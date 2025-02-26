@@ -9,6 +9,7 @@ import reactor.core.publisher.Mono;
 import reactor.test.StepVerifier;
 import schwarz.jobs.interview.coupon.core.domain.Coupon;
 import schwarz.jobs.interview.coupon.core.exception.CouponCodeAlreadyExistsException;
+import schwarz.jobs.interview.coupon.core.mapper.BasketMapper;
 import schwarz.jobs.interview.coupon.core.mapper.CouponMapper;
 import schwarz.jobs.interview.coupon.core.repository.CouponRepository;
 import schwarz.jobs.interview.coupon.web.dto.CouponDTO;
@@ -29,11 +30,16 @@ class CouponServiceTest {
     private final CouponService couponService;
     private final CouponRepository couponRepository;
     private final CouponMapper couponMapper;
+    private final BasketMapper basketMapper;
 
-    CouponServiceTest(@Mock CouponRepository couponRepository, @Mock CouponMapper couponMapper) {
+    CouponServiceTest(
+            @Mock CouponRepository couponRepository,
+            @Mock CouponMapper couponMapper,
+            @Mock BasketMapper basketMapper) {
         this.couponRepository = couponRepository;
         this.couponMapper = couponMapper;
-        this.couponService = new CouponService(couponRepository, couponMapper);
+        this.basketMapper = basketMapper;
+        this.couponService = new CouponService(couponRepository, couponMapper, basketMapper);
     }
 
     @Test

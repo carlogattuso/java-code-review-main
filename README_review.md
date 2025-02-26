@@ -1,3 +1,9 @@
+# Useful information
+
+After launching Springboot Application:
+
+* **API Docs:** [See Docs](http://localhost:8080/webjars/swagger-ui/index.html#/)
+
 # Commit [Reactive WebFlux r2dbc setup]
 
 This commit transitions the application's data access and web layer from a traditional synchronous JPA/JDBC approach to
@@ -56,3 +62,13 @@ This commit introduces the functionality to create new coupon entries in the sys
 * **Added create coupon endpoint**
 * **Testing:** Coupon service and resource
 * **Enhanced schema documentation:** Expanded the OpenAPI documentation with detailed schema descriptions
+
+# Commit [Apply coupon to a basket]
+
+This commit introduces the functionality to create new coupon entries in the system.
+
+* **Added method to apply a coupon to a basket:** Implemented validation logic to prevent exceeding basket value
+* **Added apply coupon endpoint**
+* **Testing:** Coupon service and resource
+* **Inherited BasketDTO Schema validation**
+* **Basket mapper implementation**

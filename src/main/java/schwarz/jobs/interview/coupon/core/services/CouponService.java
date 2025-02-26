@@ -6,10 +6,19 @@ import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 import schwarz.jobs.interview.coupon.core.domain.Coupon;
 import schwarz.jobs.interview.coupon.core.exception.CouponCodeAlreadyExistsException;
+import schwarz.jobs.interview.coupon.core.exception.CouponNotFoundException;
+import schwarz.jobs.interview.coupon.core.exception.InsufficientBasketValueException;
+import schwarz.jobs.interview.coupon.core.exception.InvalidDiscountException;
+import schwarz.jobs.interview.coupon.core.mapper.BasketMapper;
 import schwarz.jobs.interview.coupon.core.mapper.CouponMapper;
+import schwarz.jobs.interview.coupon.core.models.Basket;
 import schwarz.jobs.interview.coupon.core.repository.CouponRepository;
+import schwarz.jobs.interview.coupon.web.dto.ApplicationRequestDTO;
+import schwarz.jobs.interview.coupon.web.dto.BasketDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponDTO;
 import schwarz.jobs.interview.coupon.web.dto.CouponRequestDTO;
+
+import java.math.BigDecimal;
 
 @Service
 @RequiredArgsConstructor
@@ -19,32 +28,34 @@ public class CouponService {
 
     private final CouponMapper couponMapper;
 
+    private final BasketMapper basketMapper;
+
     public Mono<Coupon> getCoupon(final String code) {
         return couponRepository.findByCode(code);
     }
 
-    /*public Optional<Basket> apply(final Basket basket, final String code) {
+    public Mono<BasketDTO> applyCoupon(final ApplicationRequestDTO requestDTO) {
+        String couponCode = requestDTO.getCode();
+        Basket basket = basketMapper.toBasket(requestDTO.getBasket());
 
-        return getCoupon(code).map(coupon -> {
+        return getCoupon(couponCode)
+                .switchIfEmpty(Mono.error(new CouponNotFoundException(couponCode)))
+                .flatMap(coupon -> {
 
-            if (basket.getValue().doubleValue() >= 0) {
+                    if (coupon.getMinBasketValue().compareTo(basket.getValue()) > 0) {
+                        return Mono.error(new InsufficientBasketValueException(coupon.getMinBasketValue().toString()));
+                    }
 
-                if (basket.getValue().doubleValue() > 0) {
+                    final BigDecimal totalDiscount = basket.getValue().subtract(coupon.getDiscount().add(basket.getAppliedDiscount()));
+                    if (BigDecimal.ZERO.compareTo(totalDiscount) > 0) {
+                        return Mono.error(new InvalidDiscountException(totalDiscount.toString()));
+                    }
 
                     basket.applyDiscount(coupon.getDiscount());
 
-                } else if (basket.getValue().doubleValue() == 0) {
-                    return basket;
-                }
-
-            } else {
-                System.out.println("DEBUG: TRIED TO APPLY NEGATIVE DISCOUNT!");
-                throw new RuntimeException("Can't apply negative discounts");
-            }
-
-            return basket;
-        });
-    }*/
+                    return Mono.just(basketMapper.toDto(basket));
+                });
+    }
 
     public Mono<CouponDTO> createCoupon(final CouponDTO couponDTO) {
         String couponCode = couponDTO.getCode();

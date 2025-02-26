@@ -5,6 +5,7 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.ToString;
 
 import javax.validation.constraints.Digits;
 import javax.validation.constraints.NotNull;
@@ -17,6 +18,7 @@ import java.math.BigDecimal;
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
+@ToString
 @Schema(name = "CouponDTO", description = "Data transfer object for discount coupons")
 public class CouponDTO {
 

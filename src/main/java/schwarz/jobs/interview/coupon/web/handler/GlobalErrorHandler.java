@@ -8,7 +8,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 import org.springframework.web.bind.support.WebExchangeBindException;
 import reactor.core.publisher.Mono;
 import schwarz.jobs.interview.coupon.core.exception.CouponCodeAlreadyExistsException;
+import schwarz.jobs.interview.coupon.core.exception.CouponNotFoundException;
+import schwarz.jobs.interview.coupon.core.exception.InsufficientBasketValueException;
+import schwarz.jobs.interview.coupon.core.exception.InvalidDiscountException;
 import schwarz.jobs.interview.coupon.web.errors.ConflictError;
+import schwarz.jobs.interview.coupon.web.errors.NotFoundError;
 import schwarz.jobs.interview.coupon.web.errors.UnprocessableEntityError;
 
 import java.util.Map;
@@ -43,6 +47,39 @@ public class GlobalErrorHandler {
 
         ConflictError errorResponse = ConflictError.builder()
                 .message("Coupon code already exists")
+                .build();
+
+        return Mono.just(errorResponse);
+    }
+
+    @ExceptionHandler(CouponNotFoundException.class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public Mono<NotFoundError> handleCouponNotExistsException() {
+
+        NotFoundError errorResponse = NotFoundError.builder()
+                .message("Coupon code not exists")
+                .build();
+
+        return Mono.just(errorResponse);
+    }
+
+    @ExceptionHandler(InsufficientBasketValueException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Mono<ConflictError> handleCouponCodeNotApplicableException() {
+
+        ConflictError errorResponse = ConflictError.builder()
+                .message("Insufficient basket value to apply coupon")
+                .build();
+
+        return Mono.just(errorResponse);
+    }
+
+    @ExceptionHandler(InvalidDiscountException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public Mono<ConflictError> handleInvalidDiscountException() {
+
+        ConflictError errorResponse = ConflictError.builder()
+                .message("Invalid discount exceeding basket value")
                 .build();
 
         return Mono.just(errorResponse);
